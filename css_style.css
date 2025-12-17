@@ -8,136 +8,73 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background:  linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
-    padding: 20px;
+    padding: 20px 15px;
     color: #333;
 }
 
 .container {
-    max-width: 600px;
+    max-width: 800px;
     margin: 0 auto;
 }
 
 header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
     color: white;
 }
 
 header h1 {
-    font-size: 2em;
-    margin-bottom: 10px;
+    font-size: 1.8em;
+    margin-bottom: 8px;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .subtitle {
     opacity: 0.9;
-    font-size: 0.95em;
+    font-size: 0.9em;
 }
 
-/* 视频预览 */
-.video-container {
-    position: relative;
-    background: #000;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    margin-bottom: 20px;
-}
-
-#videoPreview {
-    width: 100%;
-    display: block;
-    min-height: 300px;
-}
-
-.loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom:  0;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: white;
-}
-
-.loading-overlay. hidden {
-    display: none;
-}
-
-.spinner {
-    width: 50px;
-    height: 50px;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 15px;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* 当前摄像头信息 */
-.current-camera-info {
+/* 状态卡片 */
+.status-card {
     background: white;
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 20px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.current-camera-info h3 {
-    margin-bottom: 15px;
-    color: #667eea;
-}
-
-.info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
-.info-item {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
-.info-item . label {
-    font-size:  0.85em;
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-label {
     color: #666;
-    margin-bottom: 4px;
-}
-
-.info-item .value {
-    font-weight: 600;
-    color: #333;
     font-size: 0.95em;
 }
 
-/* 控制按钮 */
-.controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom:  20px;
+.status-value {
+    font-size: 1.5em;
+    font-weight:  700;
+    color: #667eea;
 }
 
-. btn {
-    flex: 1;
-    padding:  14px 20px;
+.btn {
+    padding: 12px 24px;
     border: none;
-    border-radius: 10px;
-    font-size:  1em;
+    border-radius: 8px;
+    font-size: 0.95em;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -151,176 +88,167 @@ header h1 {
     color: white;
 }
 
-.btn-secondary {
-    background: white;
-    color: #667eea;
-}
-
-.btn-success {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    color: white;
-}
-
-/* 摄像头列表 */
-.camera-list {
+/* 加载卡片 */
+.loading-card {
     background: white;
     border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.camera-list h3 {
-    margin-bottom: 15px;
-    color: #667eea;
-}
-
-.camera-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.camera-btn {
-    padding: 15px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    background: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.camera-btn:hover {
-    border-color: #667eea;
-    background: #f8f9ff;
-}
-
-.camera-btn.active {
-    border-color: #667eea;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
-.camera-icon {
-    font-size: 1.5em;
-    min-width: 30px;
-    text-align: center;
-}
-
-. camera-btn-content {
-    flex: 1;
-}
-
-.camera-btn-title {
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.camera-btn-label {
-    font-size: 0.85em;
-    opacity: 0.8;
-}
-
-/* 照片预览 */
-.photo-preview {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom:  0;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-
-.photo-preview. hidden {
-    display: none ! important; /* 加上 ! important 确保优先级 */
-}
-
-.photo-preview h3 {
-    color: white;
+    padding: 40px;
+    text-align:  center;
+    box-shadow:  0 4px 12px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
 }
 
-#photoCanvas {
-    max-width: 100%;
-    max-height: 60vh;
-    border-radius:  12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+.loading-card. hidden {
+    display: none;
 }
 
-.photo-controls {
-    display: flex;
-    gap:  10px;
-    margin-top: 20px;
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #e0e0e0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 /* 错误提示 */
 .error-message {
     background: #ff4757;
     color: white;
-    padding: 15px;
+    padding: 15px 20px;
     border-radius:  10px;
     margin-bottom:  20px;
     box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
+    font-size: 0.95em;
 }
 
 .error-message.hidden {
     display: none;
 }
 
-/* 详细参数 */
-.details-panel {
+/* 摄像头列表 */
+.camera-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* 摄像头卡片 */
+.camera-card {
     background: white;
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    margin-bottom:  20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-. details-panel h3 {
+.camera-card:active {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.camera-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 15px;
-    color: #667eea;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
 }
 
-.details-content {
-    font-size: 0.9em;
-    line-height: 1.8;
-}
-
-.details-content . placeholder {
-    color: #999;
+.camera-icon {
+    font-size: 2em;
+    min-width: 50px;
     text-align: center;
-    padding: 20px;
 }
 
-.detail-item {
+.camera-title-group {
+    flex: 1;
+}
+
+. camera-type {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 4px;
+}
+
+.camera-label {
+    font-size: 0.85em;
+    color: #999;
+}
+
+/* 参数网格 */
+.params-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.param-item {
+    background: #f8f9ff;
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 3px solid #667eea;
+}
+
+.param-label {
+    font-size: 0.8em;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.param-value {
+    font-size: 1em;
+    font-weight: 600;
+    color: #333;
+    word-break: break-all;
+}
+
+/* 详细参数 */
+.detailed-params {
+    background: #fafafa;
+    padding: 15px;
+    border-radius:  8px;
+    margin-top: 10px;
+}
+
+.detailed-params-title {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.param-row {
     display: flex;
     justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #f0f0f0;
+    padding: 6px 0;
+    font-size: 0.85em;
+    border-bottom: 1px solid #e0e0e0;
 }
 
-.detail-item:last-child {
-    border-bottom:  none;
+.param-row:last-child {
+    border-bottom: none;
 }
 
-.detail-label {
+.param-row-label {
     color: #666;
-    font-weight: 500;
 }
 
-. detail-value {
-    color: #333;
+.param-row-value {
     font-weight: 600;
+    color: #333;
+    text-align: right;
 }
 
 /* 响应式 */
@@ -333,7 +261,17 @@ header h1 {
         font-size: 1.5em;
     }
 
-    .info-grid {
+    . status-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .params-grid {
         grid-template-columns: 1fr;
     }
 }
