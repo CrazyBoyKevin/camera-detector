@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>手机摄像头检测器</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📸 摄像头检测器</h1>
+            <p class="subtitle">检测你的手机摄像头类型</p>
+        </header>
+
+        <!-- 视频预览区 -->
+        <div class="video-container">
+            <video id="videoPreview" autoplay playsinline></video>
+            <div id="loadingOverlay" class="loading-overlay">
+                <div class="spinner"></div>
+                <p>正在启动摄像头...</p>
+            </div>
+        </div>
+
+        <!-- 当前摄像头信息 -->
+        <div class="current-camera-info" id="currentCameraInfo">
+            <h3>📷 当前摄像头</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="label">类型：</span>
+                    <span class="value" id="cameraType">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">分辨率：</span>
+                    <span class="value" id="resolution">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">设备：</span>
+                    <span class="value" id="deviceLabel">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">缩放：</span>
+                    <span class="value" id="zoomRange">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="controls">
+            <button id="captureBtn" class="btn btn-primary">
+                <span>📸</span> 拍照
+            </button>
+            <button id="refreshBtn" class="btn btn-secondary">
+                <span>🔄</span> 刷新
+            </button>
+        </div>
+
+        <!-- 摄像头列表 -->
+        <div class="camera-list">
+            <h3>🎥 可用摄像头 (<span id="cameraCount">0</span>)</h3>
+            <div id="cameraButtons" class="camera-buttons"></div>
+        </div>
+
+        <!-- 拍照预览 -->
+        <div id="photoPreview" class="photo-preview hidden">
+            <h3>📷 拍摄照片</h3>
+            <canvas id="photoCanvas"></canvas>
+            <div class="photo-controls">
+                <button id="downloadBtn" class="btn btn-success">💾 下载</button>
+                <button id="closePhotoBtn" class="btn btn-secondary">✖ 关闭</button>
+            </div>
+        </div>
+
+        <!-- 错误提示 -->
+        <div id="errorMessage" class="error-message hidden"></div>
+
+        <!-- 详细参数 -->
+        <div class="details-panel">
+            <h3>🔧 详细参数</h3>
+            <div id="detailsContent" class="details-content">
+                <p class="placeholder">选择一个摄像头查看详细信息</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/camera.js"></script>
+</body>
+</html>
