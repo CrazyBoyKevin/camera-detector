@@ -242,7 +242,7 @@ header h1 {
 }
 
 .photo-preview. hidden {
-    display: none;
+    display: none ! important; /* 加上 ! important 确保优先级 */
 }
 
 .photo-preview h3 {
