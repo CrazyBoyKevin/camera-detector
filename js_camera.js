@@ -104,6 +104,9 @@ async function detectAllCameras() {
             }
         }
 
+        // 根据类型和朝向进行二次去重
+        allCameras = dedupeCameras(allCameras);
+
         cameraCount.textContent = allCameras.length;
 
     } catch (error) {
@@ -127,11 +130,15 @@ function analyzeCameraType(device, capabilities, settings) {
     } else if (label.includes('back') || label.includes('rear') || label.includes('后') || settings.facingMode === 'environment') {
         icon = '📷';
 
-        // 进一步判断后置摄像头类型
-        if (label.includes('ultra') || label.includes('wide') || label.includes('超广角') || label.includes('广角')) {
-            type = '超广角/广角';
+        // 进一步判断后置摄像头类型（优先匹配超广角，再匹配广角）
+        if (label.includes('ultra') || label.includes('超广角')) {
+            type = '超广角';
             icon = '🌄';
             description = '更宽的视野，适合风景和团体照';
+        } else if (label.includes('wide') || label.includes('广角')) {
+            type = '广角';
+            icon = '🌄';
+            description = '常规广角视野，适合日常拍摄';
         } else if (label.includes('telephoto') || label.includes('tele') || label.includes('zoom') || label.includes('长焦')) {
             type = '长焦摄像头';
             icon = '🔭';
@@ -153,6 +160,26 @@ function analyzeCameraType(device, capabilities, settings) {
         description: description,
         facingMode: settings.facingMode || '未知'
     };
+}
+
+// 按类型与朝向去重，保留更高分辨率的一个
+function dedupeCameras(cameras) {
+    const pickBetter = (a, b) => {
+        const pa = (a.settings?.width || 0) * (a.settings?.height || 0);
+        const pb = (b.settings?.width || 0) * (b.settings?.height || 0);
+        return pa >= pb ? a : b;
+    };
+    const map = new Map();
+    for (const cam of cameras) {
+        const key = `${cam.type}|${cam.facingMode}`;
+        if (!map.has(key)) {
+            map.set(key, cam);
+        } else {
+            const current = map.get(key);
+            map.set(key, pickBetter(current, cam));
+        }
+    }
+    return Array.from(map.values());
 }
 
 // 显示摄像头信息
