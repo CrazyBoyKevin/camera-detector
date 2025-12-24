@@ -121,14 +121,17 @@ function analyzeCameraType(device, capabilities, settings) {
     let type = '标准摄像头';
     let icon = '📷';
     let description = '';
+    let orientation = '未知';
 
     // 判断前置/后置
     if (label.includes('front') || label.includes('前') || settings.facingMode === 'user') {
         type = '前置摄像头';
         icon = '🤳';
         description = '用于自拍和视频通话';
+        orientation = 'front';
     } else if (label.includes('back') || label.includes('rear') || label.includes('后') || settings.facingMode === 'environment') {
         icon = '📷';
+        orientation = 'back';
 
         // 进一步判断后置摄像头类型（优先匹配超广角，再匹配广角）
         if (label.includes('ultra') || label.includes('超广角')) {
@@ -158,7 +161,8 @@ function analyzeCameraType(device, capabilities, settings) {
         type: type,
         icon: icon,
         description: description,
-        facingMode: settings.facingMode || '未知'
+        facingMode: settings.facingMode || '未知',
+        orientation: orientation
     };
 }
 
@@ -171,7 +175,10 @@ function dedupeCameras(cameras) {
     };
     const map = new Map();
     for (const cam of cameras) {
-        const key = `${cam.type}|${cam.facingMode}`;
+        const orient = cam.orientation && cam.orientation !== '未知'
+            ? cam.orientation
+            : (cam.facingMode === 'environment' ? 'back' : (cam.facingMode === 'user' ? 'front' : 'unknown'));
+        const key = `${cam.type}|${orient}`;
         if (!map.has(key)) {
             map.set(key, cam);
         } else {
