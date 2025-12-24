@@ -151,9 +151,10 @@ function analyzeCameraType(device, capabilities, settings) {
             icon = '🔬';
             description = '超近距离拍摄细节';
         } else {
-            type = '后置主摄';
-            icon = '📷';
-            description = '主要拍摄摄像头';
+            // 默认把未明确标注的后置镜头归为广角（主摄）
+            type = '广角';
+            icon = '🌄';
+            description = '常规广角视野，适合日常拍摄';
         }
     }
 
