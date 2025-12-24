@@ -20,24 +20,24 @@ async function init() {
         showLoading(true);
         hideError();
         cameraList.innerHTML = '';
-        
+
         // 检查浏览器支持
-        if (!navigator.mediaDevices || ! navigator.mediaDevices.getUserMedia) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error('您的浏览器不支持摄像头访问！请使用现代浏览器（Chrome、Safari等）');
         }
 
         // 首先请求权限
-        const tempStream = await navigator.mediaDevices. getUserMedia({ video: true });
+        const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
         tempStream.getTracks().forEach(track => track.stop());
-        
+
         // 检测所有摄像头
         await detectAllCameras();
-        
+
         // 显示结果
         displayCameras();
-        
+
         showLoading(false);
-        
+
     } catch (error) {
         console.error('初始化失败:', error);
         showError(error.message || '无法访问摄像头，请检查权限设置');
@@ -48,30 +48,42 @@ async function init() {
 // 检测所有摄像头
 async function detectAllCameras() {
     try {
-        const devices = await navigator.mediaDevices. enumerateDevices();
+        const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        
+
+        // 去重：部分设备/浏览器会为同一物理摄像头暴露多个输入
+        // 依据 groupId + 归一化 label 去重，以避免列表重复显示
+        const seen = new Set();
+        const uniqueVideoDevices = [];
+        for (const d of videoDevices) {
+            const key = `${d.groupId || ''}|${(d.label || '').toLowerCase()}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueVideoDevices.push(d);
+            }
+        }
+
         allCameras = [];
-        
-        for (let i = 0; i < videoDevices.length; i++) {
-            const device = videoDevices[i];
-            
+
+        for (let i = 0; i < uniqueVideoDevices.length; i++) {
+            const device = uniqueVideoDevices[i];
+
             try {
-                console.log(`正在检测摄像头 ${i + 1}/${videoDevices.length}... `);
-                
+                console.log(`正在检测摄像头 ${i + 1}/${uniqueVideoDevices.length}... `);
+
                 // 获取摄像头流
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
+                    video: {
                         deviceId: { exact: device.deviceId },
                         width: { ideal: 4096 },
-                        height:  { ideal: 2160 }
+                        height: { ideal: 2160 }
                     }
                 });
-                
+
                 const track = stream.getVideoTracks()[0];
                 const capabilities = track.getCapabilities();
                 const settings = track.getSettings();
-                
+
                 // 分析摄像头类型
                 const cameraInfo = {
                     index: i + 1,
@@ -79,21 +91,21 @@ async function detectAllCameras() {
                     label: device.label || `摄像头 ${i + 1}`,
                     ...analyzeCameraType(device, capabilities, settings),
                     capabilities: capabilities,
-                    settings:  settings
+                    settings: settings
                 };
-                
+
                 allCameras.push(cameraInfo);
-                
+
                 // 停止流
                 track.stop();
-                
+
             } catch (error) {
                 console.error(`获取设备 ${device.label} 信息失败: `, error);
             }
         }
-        
+
         cameraCount.textContent = allCameras.length;
-        
+
     } catch (error) {
         console.error('检测摄像头失败:', error);
         throw error;
@@ -102,11 +114,11 @@ async function detectAllCameras() {
 
 // 分析摄像头类型
 function analyzeCameraType(device, capabilities, settings) {
-    const label = device.label. toLowerCase();
+    const label = device.label.toLowerCase();
     let type = '标准摄像头';
     let icon = '📷';
     let description = '';
-    
+
     // 判断前置/后置
     if (label.includes('front') || label.includes('前') || settings.facingMode === 'user') {
         type = '前置摄像头';
@@ -114,13 +126,13 @@ function analyzeCameraType(device, capabilities, settings) {
         description = '用于自拍和视频通话';
     } else if (label.includes('back') || label.includes('rear') || label.includes('后') || settings.facingMode === 'environment') {
         icon = '📷';
-        
+
         // 进一步判断后置摄像头类型
         if (label.includes('ultra') || label.includes('wide') || label.includes('超广角') || label.includes('广角')) {
             type = '超广角/广角';
             icon = '🌄';
             description = '更宽的视野，适合风景和团体照';
-        } else if (label. includes('telephoto') || label.includes('tele') || label.includes('zoom') || label.includes('长焦')) {
+        } else if (label.includes('telephoto') || label.includes('tele') || label.includes('zoom') || label.includes('长焦')) {
             type = '长焦摄像头';
             icon = '🔭';
             description = '拉近远处景物，适合人像和远景';
@@ -134,11 +146,11 @@ function analyzeCameraType(device, capabilities, settings) {
             description = '主要拍摄摄像头';
         }
     }
-    
+
     return {
         type: type,
         icon: icon,
-        description:  description,
+        description: description,
         facingMode: settings.facingMode || '未知'
     };
 }
@@ -149,14 +161,14 @@ function displayCameras() {
         cameraList.innerHTML = '<div class="camera-card"><p style="text-align: center;color:#999;">未检测到摄像头</p></div>';
         return;
     }
-    
+
     cameraList.innerHTML = allCameras.map(camera => createCameraCard(camera)).join('');
 }
 
 // 创建摄像头卡片
 function createCameraCard(camera) {
     const { settings, capabilities } = camera;
-    
+
     return `
         <div class="camera-card">
             <div class="camera-header">
@@ -176,11 +188,11 @@ function createCameraCard(camera) {
                 </div>
                 <div class="param-item">
                     <div class="param-label">宽高比</div>
-                    <div class="param-value">${settings.aspectRatio ?  settings.aspectRatio. toFixed(2) : '-'}</div>
+                    <div class="param-value">${settings.aspectRatio ? settings.aspectRatio.toFixed(2) : '-'}</div>
                 </div>
                 <div class="param-item">
                     <div class="param-label">帧率</div>
-                    <div class="param-value">${settings.frameRate ?  settings.frameRate + ' fps' : '-'}</div>
+                    <div class="param-value">${settings.frameRate ? settings.frameRate + ' fps' : '-'}</div>
                 </div>
                 <div class="param-item">
                     <div class="param-label">朝向</div>
@@ -192,27 +204,27 @@ function createCameraCard(camera) {
             <div class="detailed-params">
                 <div class="detailed-params-title">🔧 详细参数</div>
                 
-                ${createParamRow('设备ID', camera.deviceId. substring(0, 30) + '.. .')}
+                ${createParamRow('设备ID', camera.deviceId.substring(0, 30) + '.. .')}
                 
-                ${capabilities.zoom ?  createParamRow('缩放范围', `${capabilities.zoom.min}x - ${capabilities.zoom.max}x (步进: ${capabilities.zoom.step || 0.1})`) : ''}
+                ${capabilities.zoom ? createParamRow('缩放范围', `${capabilities.zoom.min}x - ${capabilities.zoom.max}x (步进: ${capabilities.zoom.step || 0.1})`) : ''}
                 
-                ${capabilities.focusDistance ? createParamRow('焦距范围', `${capabilities.focusDistance.min} - ${capabilities.focusDistance. max}`) : ''}
+                ${capabilities.focusDistance ? createParamRow('焦距范围', `${capabilities.focusDistance.min} - ${capabilities.focusDistance.max}`) : ''}
                 
                 ${capabilities.focusMode ? createParamRow('对焦模式', Array.isArray(capabilities.focusMode) ? capabilities.focusMode.join(', ') : capabilities.focusMode) : ''}
                 
-                ${capabilities.exposureMode ? createParamRow('曝光模式', Array. isArray(capabilities.exposureMode) ? capabilities.exposureMode. join(', ') : capabilities.exposureMode) : ''}
+                ${capabilities.exposureMode ? createParamRow('曝光模式', Array.isArray(capabilities.exposureMode) ? capabilities.exposureMode.join(', ') : capabilities.exposureMode) : ''}
                 
                 ${capabilities.exposureCompensation ? createParamRow('曝光补偿', `${capabilities.exposureCompensation.min} - ${capabilities.exposureCompensation.max}`) : ''}
                 
-                ${capabilities. whiteBalanceMode ? createParamRow('白平衡模式', Array.isArray(capabilities.whiteBalanceMode) ? capabilities.whiteBalanceMode.join(', ') : capabilities.whiteBalanceMode) : ''}
+                ${capabilities.whiteBalanceMode ? createParamRow('白平衡模式', Array.isArray(capabilities.whiteBalanceMode) ? capabilities.whiteBalanceMode.join(', ') : capabilities.whiteBalanceMode) : ''}
                 
                 ${capabilities.colorTemperature ? createParamRow('色温范围', `${capabilities.colorTemperature.min}K - ${capabilities.colorTemperature.max}K`) : ''}
                 
-                ${capabilities.iso ? createParamRow('ISO范围', `${capabilities.iso.min} - ${capabilities.iso. max}`) : ''}
+                ${capabilities.iso ? createParamRow('ISO范围', `${capabilities.iso.min} - ${capabilities.iso.max}`) : ''}
                 
-                ${capabilities.brightness ? createParamRow('亮度范围', `${capabilities.brightness.min} - ${capabilities.brightness. max}`) : ''}
+                ${capabilities.brightness ? createParamRow('亮度范围', `${capabilities.brightness.min} - ${capabilities.brightness.max}`) : ''}
                 
-                ${capabilities.contrast ? createParamRow('对比度范围', `${capabilities.contrast.min} - ${capabilities. contrast.max}`) : ''}
+                ${capabilities.contrast ? createParamRow('对比度范围', `${capabilities.contrast.min} - ${capabilities.contrast.max}`) : ''}
                 
                 ${capabilities.saturation ? createParamRow('饱和度范围', `${capabilities.saturation.min} - ${capabilities.saturation.max}`) : ''}
                 
@@ -220,13 +232,13 @@ function createCameraCard(camera) {
                 
                 ${capabilities.torch ? createParamRow('闪光灯', capabilities.torch ? '支持' : '不支持') : ''}
                 
-                ${capabilities.width ?  createParamRow('支持最大宽度', `${capabilities.width.max} px`) : ''}
+                ${capabilities.width ? createParamRow('支持最大宽度', `${capabilities.width.max} px`) : ''}
                 
                 ${capabilities.height ? createParamRow('支持最大高度', `${capabilities.height.max} px`) : ''}
                 
-                ${capabilities.frameRate ?  createParamRow('帧率范围', `${capabilities.frameRate.min} - ${capabilities. frameRate.max} fps`) : ''}
+                ${capabilities.frameRate ? createParamRow('帧率范围', `${capabilities.frameRate.min} - ${capabilities.frameRate.max} fps`) : ''}
                 
-                ${capabilities.aspectRatio ? createParamRow('宽高比范围', `${capabilities.aspectRatio.min?. toFixed(2)} - ${capabilities.aspectRatio.max?.toFixed(2)}`) : ''}
+                ${capabilities.aspectRatio ? createParamRow('宽高比范围', `${capabilities.aspectRatio.min?.toFixed(2)} - ${capabilities.aspectRatio.max?.toFixed(2)}`) : ''}
                 
                 ${capabilities.facingMode ? createParamRow('支持朝向', Array.isArray(capabilities.facingMode) ? capabilities.facingMode.join(', ') : capabilities.facingMode) : ''}
                 
@@ -238,7 +250,7 @@ function createCameraCard(camera) {
 
 // 创建参数行
 function createParamRow(label, value) {
-    if (! value || value === 'undefined - undefined') return '';
+    if (!value || value === 'undefined - undefined') return '';
     return `
         <div class="param-row">
             <span class="param-row-label">${label}:</span>
@@ -252,7 +264,7 @@ function showLoading(show) {
     if (show) {
         loadingCard.classList.remove('hidden');
     } else {
-        loadingCard. classList.add('hidden');
+        loadingCard.classList.add('hidden');
     }
 }
 
@@ -264,5 +276,5 @@ function showError(message) {
 
 // 隐藏错误
 function hideError() {
-    errorMessage. classList.add('hidden');
+    errorMessage.classList.add('hidden');
 }
