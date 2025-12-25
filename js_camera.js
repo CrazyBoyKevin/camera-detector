@@ -1,5 +1,8 @@
 // 全局变量
 let allCameras = [];
+let currentStream = null;
+let currentCameraIndex = 0;
+let currentFacingMode = 'environment'; // 默认后置
 
 // DOM元素
 const cameraCount = document.getElementById('cameraCount');
@@ -7,11 +10,21 @@ const refreshBtn = document.getElementById('refreshBtn');
 const errorMessage = document.getElementById('errorMessage');
 const loadingCard = document.getElementById('loadingCard');
 const cameraList = document.getElementById('cameraList');
+const previewModal = document.getElementById('previewModal');
+const previewVideo = document.getElementById('previewVideo');
+const closePreview = document.getElementById('closePreview');
+const switchCamera = document.getElementById('switchCamera');
+const cameraSelect = document.getElementById('cameraSelect');
+const currentCameraName = document.getElementById('currentCameraName');
+const currentResolution = document.getElementById('currentResolution');
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
     init();
     refreshBtn.addEventListener('click', init);
+    closePreview.addEventListener('click', closePreviewModal);
+    switchCamera.addEventListener('click', handleSwitchCamera);
+    cameraSelect.addEventListener('change', handleCameraSelect);
 });
 
 // 初始化检测
@@ -213,6 +226,9 @@ function createCameraCard(camera) {
                     <div class="camera-label">${camera.label}</div>
                     ${camera.description ? `<div class="camera-label">${camera.description}</div>` : ''}
                 </div>
+                <button class="btn btn-preview" onclick="openPreview('${camera.deviceId}')">
+                    📹 预览
+                </button>
             </div>
             
             <!-- 基本参数 -->
@@ -312,4 +328,153 @@ function showError(message) {
 // 隐藏错误
 function hideError() {
     errorMessage.classList.add('hidden');
+}
+
+// ========== 相机预览功能 ==========
+
+// 打开预览（通过设备ID）
+async function openPreview(deviceId = null) {
+    try {
+        previewModal.classList.remove('hidden');
+
+        // 填充相机选择下拉框
+        populateCameraSelect();
+
+        if (deviceId) {
+            // 使用指定的设备ID
+            await startPreviewWithDeviceId(deviceId);
+        } else {
+            // 使用facingMode（前置或后置）
+            await startPreviewWithFacingMode(currentFacingMode);
+        }
+    } catch (error) {
+        console.error('打开预览失败:', error);
+        alert('无法打开相机预览：' + error.message);
+        closePreviewModal();
+    }
+}
+
+// 使用设备ID启动预览
+async function startPreviewWithDeviceId(deviceId) {
+    stopCurrentStream();
+
+    const constraints = {
+        video: {
+            deviceId: { exact: deviceId },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+        },
+        audio: false
+    };
+
+    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+    previewVideo.srcObject = currentStream;
+
+    // 更新当前相机信息
+    const camera = allCameras.find(c => c.deviceId === deviceId);
+    updatePreviewInfo(camera);
+
+    // 更新下拉框选中项
+    cameraSelect.value = deviceId;
+}
+
+// 使用facingMode启动预览
+async function startPreviewWithFacingMode(facingMode) {
+    stopCurrentStream();
+
+    const constraints = {
+        video: {
+            facingMode: facingMode,
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+        },
+        audio: false
+    };
+
+    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+    previewVideo.srcObject = currentStream;
+
+    // 获取实际使用的设备ID
+    const track = currentStream.getVideoTracks()[0];
+    const settings = track.getSettings();
+    const deviceId = settings.deviceId;
+
+    // 更新当前相机信息
+    const camera = allCameras.find(c => c.deviceId === deviceId);
+    updatePreviewInfo(camera);
+
+    // 更新下拉框选中项
+    if (deviceId) {
+        cameraSelect.value = deviceId;
+    }
+}
+
+// 填充相机选择下拉框
+function populateCameraSelect() {
+    cameraSelect.innerHTML = '<option value="">选择相机...</option>';
+
+    allCameras.forEach(camera => {
+        const option = document.createElement('option');
+        option.value = camera.deviceId;
+        option.textContent = `${camera.icon} ${camera.type} - ${camera.label}`;
+        cameraSelect.appendChild(option);
+    });
+}
+
+// 切换相机（前置/后置）
+async function handleSwitchCamera() {
+    try {
+        // 切换facingMode
+        currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+        await startPreviewWithFacingMode(currentFacingMode);
+    } catch (error) {
+        console.error('切换相机失败:', error);
+        alert('切换相机失败：' + error.message);
+    }
+}
+
+// 处理相机选择
+async function handleCameraSelect(event) {
+    const deviceId = event.target.value;
+    if (!deviceId) return;
+
+    try {
+        await startPreviewWithDeviceId(deviceId);
+    } catch (error) {
+        console.error('选择相机失败:', error);
+        alert('选择相机失败：' + error.message);
+    }
+}
+
+// 更新预览信息
+function updatePreviewInfo(camera) {
+    if (camera) {
+        currentCameraName.textContent = `${camera.icon} ${camera.type}`;
+
+        // 等待视频元数据加载后获取实际分辨率
+        previewVideo.addEventListener('loadedmetadata', () => {
+            currentResolution.textContent = `${previewVideo.videoWidth} × ${previewVideo.videoHeight}`;
+        }, { once: true });
+    } else {
+        currentCameraName.textContent = '-';
+        currentResolution.textContent = '-';
+    }
+}
+
+// 停止当前流
+function stopCurrentStream() {
+    if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+    }
+}
+
+// 关闭预览窗口
+function closePreviewModal() {
+    stopCurrentStream();
+    previewModal.classList.add('hidden');
+    previewVideo.srcObject = null;
+    currentCameraName.textContent = '-';
+    currentResolution.textContent = '-';
+    cameraSelect.value = '';
 }

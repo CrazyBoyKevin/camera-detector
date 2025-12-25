@@ -40,6 +40,37 @@
         <div id="cameraList" class="camera-list"></div>
     </div>
 
+    <!-- 相机预览浮窗 -->
+    <div id="previewModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📹 相机预览</h3>
+                <button id="closePreview" class="close-btn">✕</button>
+            </div>
+            <div class="preview-container">
+                <video id="previewVideo" autoplay playsinline></video>
+            </div>
+            <div class="preview-controls">
+                <button id="switchCamera" class="btn btn-secondary">
+                    <span>🔄</span> 切换相机
+                </button>
+                <select id="cameraSelect" class="camera-select">
+                    <option value="">选择相机...</option>
+                </select>
+            </div>
+            <div class="preview-info" id="previewInfo">
+                <div class="info-item">
+                    <span class="info-label">当前相机：</span>
+                    <span class="info-value" id="currentCameraName">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">分辨率：</span>
+                    <span class="info-value" id="currentResolution">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js_camera.js"></script>
 </body>
 
