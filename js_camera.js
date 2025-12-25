@@ -4,6 +4,11 @@ let currentStream = null;
 let currentCameraIndex = 0;
 let currentFacingMode = 'environment'; // 默认后置
 
+// 检测微信浏览器和iOS
+const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isWeChatIOS = isWeChat && isIOS;
+
 // DOM元素
 const cameraCount = document.getElementById('cameraCount');
 const refreshBtn = document.getElementById('refreshBtn');
@@ -20,11 +25,27 @@ const currentResolution = document.getElementById('currentResolution');
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
+    // 显示微信浏览器提示
+    if (isWeChatIOS) {
+        showWeChatTips();
+    }
+
     init();
     refreshBtn.addEventListener('click', init);
     closePreview.addEventListener('click', closePreviewModal);
     switchCamera.addEventListener('click', handleSwitchCamera);
     cameraSelect.addEventListener('change', handleCameraSelect);
+
+    // 微信iOS：点击视频区域尝试播放（解决自动播放限制）
+    if (isWeChatIOS) {
+        previewVideo.addEventListener('click', async () => {
+            try {
+                await previewVideo.play();
+            } catch (e) {
+                console.warn('手动播放失败', e);
+            }
+        });
+    }
 });
 
 // 初始化检测
@@ -337,6 +358,9 @@ async function openPreview(deviceId = null) {
     try {
         previewModal.classList.remove('hidden');
 
+        // 显示加载提示
+        showVideoLoading(true);
+
         // 填充相机选择下拉框
         populateCameraSelect();
 
@@ -347,8 +371,12 @@ async function openPreview(deviceId = null) {
             // 使用facingMode（前置或后置）
             await startPreviewWithFacingMode(currentFacingMode);
         }
+
+        // 隐藏加载提示
+        showVideoLoading(false);
     } catch (error) {
         console.error('打开预览失败:', error);
+        showVideoLoading(false);
         alert('无法打开相机预览：' + error.message);
         closePreviewModal();
     }
@@ -358,17 +386,27 @@ async function openPreview(deviceId = null) {
 async function startPreviewWithDeviceId(deviceId) {
     stopCurrentStream();
 
+    // 微信iOS优化：降低初始分辨率，避免加载失败
     const constraints = {
         video: {
             deviceId: { exact: deviceId },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
+            width: { ideal: isWeChatIOS ? 1280 : 1920 },
+            height: { ideal: isWeChatIOS ? 720 : 1080 }
         },
         audio: false
     };
 
     currentStream = await navigator.mediaDevices.getUserMedia(constraints);
     previewVideo.srcObject = currentStream;
+
+    // iOS/微信需要手动调用play
+    if (isIOS || isWeChat) {
+        try {
+            await previewVideo.play();
+        } catch (e) {
+            console.warn('自动播放失败，等待用户交互', e);
+        }
+    }
 
     // 更新当前相机信息
     const camera = allCameras.find(c => c.deviceId === deviceId);
@@ -382,17 +420,27 @@ async function startPreviewWithDeviceId(deviceId) {
 async function startPreviewWithFacingMode(facingMode) {
     stopCurrentStream();
 
+    // 微信iOS优化：降低初始分辨率，避免加载失败
     const constraints = {
         video: {
             facingMode: facingMode,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
+            width: { ideal: isWeChatIOS ? 1280 : 1920 },
+            height: { ideal: isWeChatIOS ? 720 : 1080 }
         },
         audio: false
     };
 
     currentStream = await navigator.mediaDevices.getUserMedia(constraints);
     previewVideo.srcObject = currentStream;
+
+    // iOS/微信需要手动调用play
+    if (isIOS || isWeChat) {
+        try {
+            await previewVideo.play();
+        } catch (e) {
+            console.warn('自动播放失败，等待用户交互', e);
+        }
+    }
 
     // 获取实际使用的设备ID
     const track = currentStream.getVideoTracks()[0];
@@ -477,4 +525,48 @@ function closePreviewModal() {
     currentCameraName.textContent = '-';
     currentResolution.textContent = '-';
     cameraSelect.value = '';
+}
+
+// 显示微信浏览器提示
+function showWeChatTips() {
+    const tipsDiv = document.createElement('div');
+    tipsDiv.className = 'wechat-tips';
+    tipsDiv.innerHTML = `
+        <div class="tips-content">
+            <span class="tips-icon">💡</span>
+            <div class="tips-text">
+                <strong>微信浏览器提示</strong>
+                <p>检测到您正在使用iOS微信浏览器。为获得最佳体验：</p>
+                <ul>
+                    <li>首次使用请允许相机权限</li>
+                    <li>如预览黑屏，请点击视频区域激活</li>
+                    <li>部分高级功能可能受限</li>
+                </ul>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" class="tips-close">知道了</button>
+        </div>
+    `;
+    document.body.insertBefore(tipsDiv, document.querySelector('.container'));
+}
+
+// 显示/隐藏视频加载提示
+function showVideoLoading(show) {
+    const container = document.querySelector('.preview-container');
+    let loadingDiv = container.querySelector('.video-loading');
+
+    if (show) {
+        if (!loadingDiv) {
+            loadingDiv = document.createElement('div');
+            loadingDiv.className = 'video-loading';
+            loadingDiv.innerHTML = `
+                <div class="spinner"></div>
+                <p>正在启动相机...</p>
+            `;
+            container.appendChild(loadingDiv);
+        }
+    } else {
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+    }
 }
