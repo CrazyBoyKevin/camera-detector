@@ -156,9 +156,36 @@ function analyzeCameraType(device, capabilities, settings) {
     let icon = '📷';
     let description = '';
     let orientation = '未知';
+    let isExternal = false;
 
+    // 检测外接摄像头的特征
+    // 外接摄像头通常包含这些关键词：usb, external, webcam, obs, virtual, droidcam, iruin, capture等
+    const externalKeywords = [
+        'usb', 'external', 'webcam', 'obs', 'virtual', 'droidcam',
+        'iruin', 'capture', 'iriun', 'epoccam', 'camo', 'logitech',
+        'microsoft', 'creative', 'razer', 'elgato', 'hd pro'
+    ];
+
+    isExternal = externalKeywords.some(keyword => label.includes(keyword)) ||
+        // 外接摄像头通常没有facingMode，或者label很长包含品牌信息
+        (!settings.facingMode && label.length > 20);
+
+    // 如果是外接摄像头
+    if (isExternal) {
+        type = '外接摄像头';
+        icon = '🎥';
+        description = '外接USB摄像头或虚拟摄像头';
+        orientation = 'external';
+
+        // 进一步判断是否为虚拟摄像头
+        if (label.includes('virtual') || label.includes('obs') || label.includes('snap')) {
+            type = '虚拟摄像头';
+            icon = '💻';
+            description = '软件虚拟摄像头（如OBS、Snap Camera等）';
+        }
+    }
     // 判断前置/后置
-    if (label.includes('front') || label.includes('前') || settings.facingMode === 'user') {
+    else if (label.includes('front') || label.includes('前') || settings.facingMode === 'user') {
         type = '前置摄像头';
         icon = '🤳';
         description = '用于自拍和视频通话';
@@ -197,7 +224,8 @@ function analyzeCameraType(device, capabilities, settings) {
         icon: icon,
         description: description,
         facingMode: settings.facingMode || '未知',
-        orientation: orientation
+        orientation: orientation,
+        isExternal: isExternal
     };
 }
 
@@ -210,6 +238,13 @@ function dedupeCameras(cameras) {
     };
     const map = new Map();
     for (const cam of cameras) {
+        // 外接摄像头不参与去重，保留所有
+        if (cam.isExternal) {
+            // 使用唯一的deviceId作为key
+            map.set(`external_${cam.deviceId}`, cam);
+            continue;
+        }
+
         const orient = cam.orientation && cam.orientation !== '未知'
             ? cam.orientation
             : (cam.facingMode === 'environment' ? 'back' : (cam.facingMode === 'user' ? 'front' : 'unknown'));
