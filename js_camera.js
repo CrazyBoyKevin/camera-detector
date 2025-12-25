@@ -85,17 +85,21 @@ async function detectAllCameras() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
 
-        // 去重：部分设备/浏览器会为同一物理摄像头暴露多个输入
-        // 依据 groupId + 归一化 label 去重，以避免列表重复显示
+        console.log('检测到的视频设备：', videoDevices);
+
+        // 优化的去重逻辑：只对完全相同的设备去重
         const seen = new Set();
         const uniqueVideoDevices = [];
         for (const d of videoDevices) {
-            const key = `${d.groupId || ''}|${(d.label || '').toLowerCase()}`;
+            // 使用deviceId作为唯一标识，避免误删外接设备
+            const key = d.deviceId;
             if (!seen.has(key)) {
                 seen.add(key);
                 uniqueVideoDevices.push(d);
             }
         }
+
+        console.log('去重后的设备：', uniqueVideoDevices);
 
         allCameras = [];
 
@@ -103,14 +107,14 @@ async function detectAllCameras() {
             const device = uniqueVideoDevices[i];
 
             try {
-                console.log(`正在检测摄像头 ${i + 1}/${uniqueVideoDevices.length}... `);
+                console.log(`正在检测摄像头 ${i + 1}/${uniqueVideoDevices.length}: ${device.label}`);
 
-                // 获取摄像头流
+                // 获取摄像头流（降低初始分辨率要求，提高兼容性）
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         deviceId: { exact: device.deviceId },
-                        width: { ideal: 4096 },
-                        height: { ideal: 2160 }
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
                     }
                 });
 
@@ -129,17 +133,36 @@ async function detectAllCameras() {
                 };
 
                 allCameras.push(cameraInfo);
+                console.log('成功添加摄像头：', cameraInfo.type, cameraInfo.label);
 
                 // 停止流
                 track.stop();
 
             } catch (error) {
-                console.error(`获取设备 ${device.label} 信息失败: `, error);
+                console.error(`获取设备 ${device.label || device.deviceId} 信息失败: `, error);
+                // 即使获取失败，也尝试添加基本信息
+                allCameras.push({
+                    index: i + 1,
+                    deviceId: device.deviceId,
+                    label: device.label || `摄像头 ${i + 1}`,
+                    type: '未知设备',
+                    icon: '📷',
+                    description: '无法获取详细信息',
+                    facingMode: '未知',
+                    orientation: '未知',
+                    isExternal: device.label.toLowerCase().includes('usb') ||
+                        device.label.toLowerCase().includes('external'),
+                    capabilities: {},
+                    settings: {},
+                    error: error.message
+                });
             }
         }
 
-        // 根据类型和朝向进行二次去重
+        // 根据类型和朝向进行二次去重（保留外接摄像头）
         allCameras = dedupeCameras(allCameras);
+
+        console.log('最终摄像头列表：', allCameras);
 
         cameraCount.textContent = allCameras.length;
 
@@ -151,40 +174,67 @@ async function detectAllCameras() {
 
 // 分析摄像头类型
 function analyzeCameraType(device, capabilities, settings) {
-    const label = device.label.toLowerCase();
+    const label = (device.label || '').toLowerCase();
     let type = '标准摄像头';
     let icon = '📷';
     let description = '';
     let orientation = '未知';
     let isExternal = false;
 
-    // 检测外接摄像头的特征
-    // 外接摄像头通常包含这些关键词：usb, external, webcam, obs, virtual, droidcam, iruin, capture等
-    const externalKeywords = [
-        'usb', 'external', 'webcam', 'obs', 'virtual', 'droidcam',
-        'iruin', 'capture', 'iriun', 'epoccam', 'camo', 'logitech',
-        'microsoft', 'creative', 'razer', 'elgato', 'hd pro'
+    console.log('分析摄像头:', device.label, 'facingMode:', settings.facingMode);
+
+    // 内置摄像头关键词（优先判断）
+    const builtInKeywords = [
+        'facetime', 'integrated', 'built-in', 'internal', 'isight',
+        'surface camera', 'hp truevision', 'hp webcam', 'dell webcam',
+        'lenovo integrated', 'thinkpad integrated', 'asus webcam'
     ];
 
-    isExternal = externalKeywords.some(keyword => label.includes(keyword)) ||
-        // 外接摄像头通常没有facingMode，或者label很长包含品牌信息
-        (!settings.facingMode && label.length > 20);
+    // 外接摄像头关键词
+    const externalKeywords = [
+        'usb', 'external', 'webcam', 'obs', 'virtual', 'droidcam',
+        'iruin', 'capture', 'iriun', 'epoccam', 'camo',
+        'logitech', 'microsoft lifecam', 'creative', 'razer',
+        'elgato', 'c920', 'c922', 'brio', 'hd pro webcam'
+    ];
 
-    // 如果是外接摄像头
-    if (isExternal) {
+    const hasBuiltInKeyword = builtInKeywords.some(keyword => label.includes(keyword));
+    const hasExternalKeyword = externalKeywords.some(keyword => label.includes(keyword));
+    const noFacingMode = !settings.facingMode || settings.facingMode === 'undefined';
+    const isPCEnvironment = !isIOS && !(/android/i.test(navigator.userAgent));
+
+    console.log('识别判断:', {
+        hasBuiltInKeyword,
+        hasExternalKeyword,
+        noFacingMode,
+        isPCEnvironment,
+        label: device.label
+    });
+
+    // 优先判断内置摄像头
+    if (hasBuiltInKeyword) {
+        type = '内置摄像头';
+        icon = '📷';
+        description = '笔记本/设备内置摄像头';
+        orientation = 'front';
+        isExternal = false;
+    }
+    // 判断外接摄像头
+    else if (hasExternalKeyword) {
         type = '外接摄像头';
         icon = '🎥';
-        description = '外接USB摄像头或虚拟摄像头';
+        description = '外接USB摄像头';
         orientation = 'external';
+        isExternal = true;
 
         // 进一步判断是否为虚拟摄像头
-        if (label.includes('virtual') || label.includes('obs') || label.includes('snap')) {
+        if (label.includes('virtual') || label.includes('obs') || label.includes('snap') || label.includes('v4l2loopback')) {
             type = '虚拟摄像头';
             icon = '💻';
             description = '软件虚拟摄像头（如OBS、Snap Camera等）';
         }
     }
-    // 判断前置/后置
+    // 判断手机前置/后置
     else if (label.includes('front') || label.includes('前') || settings.facingMode === 'user') {
         type = '前置摄像头';
         icon = '🤳';
@@ -273,12 +323,38 @@ function displayCameras() {
 function createCameraCard(camera) {
     const { settings, capabilities } = camera;
 
+    // 处理获取失败的情况
+    if (camera.error) {
+        return `
+            <div class="camera-card error-card">
+                <div class="camera-header">
+                    <div class="camera-icon">${camera.icon}</div>
+                    <div class="camera-title-group">
+                        <div class="camera-type">${camera.type}</div>
+                        <div class="camera-label">${camera.label}</div>
+                        <div class="camera-label error-text">⚠️ ${camera.error}</div>
+                    </div>
+                </div>
+                <div class="params-grid">
+                    <div class="param-item">
+                        <div class="param-label">状态</div>
+                        <div class="param-value">无法访问</div>
+                    </div>
+                    <div class="param-item">
+                        <div class="param-label">设备ID</div>
+                        <div class="param-value" style="font-size:0.7em;word-break:break-all;">${camera.deviceId.substring(0, 30)}...</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     return `
         <div class="camera-card">
             <div class="camera-header">
                 <div class="camera-icon">${camera.icon}</div>
                 <div class="camera-title-group">
-                    <div class="camera-type">${camera.type}</div>
+                    <div class="camera-type">${camera.type}${camera.isExternal ? ' 🔌' : ''}</div>
                     <div class="camera-label">${camera.label}</div>
                     ${camera.description ? `<div class="camera-label">${camera.description}</div>` : ''}
                 </div>

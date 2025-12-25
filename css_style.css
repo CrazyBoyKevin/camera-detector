@@ -9,7 +9,8 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     padding: 20px 15px;
-    color: #333;    -webkit-font-smoothing: antialiased;
+    color: #333;
+    -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
@@ -30,6 +31,7 @@ body {
     from {
         transform: translateY(-100%);
     }
+
     to {
         transform: translateY(0);
     }
@@ -90,7 +92,8 @@ body {
 
 .tips-close:active {
     background: rgba(255, 255, 255, 0.4);
-    transform: scale(0.95);}
+    transform: scale(0.95);
+}
 
 .container {
     max-width: 800px;
@@ -227,6 +230,16 @@ header h1 {
     padding: 20px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.camera-card.error-card {
+    background: #fff5f5;
+    border-left: 4px solid #ff4757;
+}
+
+.error-text {
+    color: #ff4757 !important;
+    font-size: 0.85em !important;
 }
 
 .camera-card:active {
