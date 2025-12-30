@@ -511,7 +511,7 @@ async function startPreviewWithDeviceId(deviceId) {
     previewVideo.srcObject = currentStream;
 
     // iOS/微信需要手动调用play
-    if (isIOS || isWeChat) {
+    if (isWeChatIOS) {
         try {
             await previewVideo.play();
         } catch (e) {
