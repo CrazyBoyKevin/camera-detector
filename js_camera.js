@@ -254,16 +254,16 @@ function analyzeCameraType(device, capabilities, settings) {
             icon = '🌄';
             description = '常规广角视野，适合日常拍摄';
         } else if (label.includes('telephoto') || label.includes('tele') || label.includes('zoom') || label.includes('长焦')) {
-            type = '长焦摄像头';
+            type = '长焦';
             icon = '🔭';
             description = '拉近远处景物，适合人像和远景';
         } else if (label.includes('macro') || label.includes('微距')) {
-            type = '微距摄像头';
+            type = '微距';
             icon = '🔬';
             description = '超近距离拍摄细节';
         } else {
             // 默认把未明确标注的后置镜头归为广角（主摄）
-            type = '广角';
+            type = '主摄';
             icon = '🌄';
             description = '常规广角视野，适合日常拍摄';
         }
